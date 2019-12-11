@@ -7,6 +7,7 @@
 import sklearn.metrics as metrics
 import numpy as np
 from collections import defaultdict
+import heapq
 np.random.seed(304)
 
 def SGD(train,test,N,M,eta,K,lambda_1,lambda_2,Step):
@@ -95,7 +96,26 @@ def AUC(user_inter_test,user_item_pred):
         auc.append(au)
     return sum(auc)/len(auc)
 
-def Get_user_item_pred(U,V,test,user_inter_test):
+def Recall(R_hat,user_inter_test,M,k):
+    recall = []
+    users = user_inter_test.keys()
+    for user in users:
+        preds = R_hat[user]
+        preds_iid = dict(zip(preds, range(M)))
+        k_preds = heapq.nlargest(k,preds_iid.keys())
+        k_items = []
+        k_label = []
+        for pred in k_preds:
+            k_items.append(preds_iid[pred])
+        for i in k_items:
+            if i in user_inter_test[user]:
+                k_label.append(1)
+            else:
+                k_label.append(0)
+        recall.append(sum(k_label)/len(user_inter_test[user]))
+    return sum(recall)/len(recall)
+
+def Get_user_item_pred(U,V,test):
     user_item_pred = defaultdict(dict)
     for t in test:
         u = t[0]
@@ -131,9 +151,16 @@ def main():
     Step = 20
     U,V = SGD(train,test,N,M,eta,K,lambda_1,lambda_2,Step)
 
-    user_item_pred = Get_user_item_pred(U, V, test, user_inter_test)
+    user_item_pred = Get_user_item_pred(U, V, test)
     auc = AUC(user_inter_test, user_item_pred)
     print('auc: {}'.format(auc))
+
+    R_hat = np.dot(U,V.T)
+    recall_2 = Recall(R_hat, user_inter_test, M, 2)
+    print('recall_2: {}'.format(recall_2))
+
+    recall_10 = Recall(R_hat, user_inter_test, M, 10)
+    print('recall_10: {}'.format(recall_10))
          
 if __name__ == '__main__': 
     main()
