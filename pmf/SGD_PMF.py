@@ -96,9 +96,13 @@ def AUC(user_inter_test,user_item_pred):
         auc.append(au)
     return sum(auc)/len(auc)
 
-def Recall(R_hat,user_inter_test,M,k):
+def Accuracy_Recall_F1_HR(R_hat,user_inter_test,M,k):
     recall = []
+    accuracy = []
+    f_1 = []
     users = user_inter_test.keys()
+    nh = 0 #number of hits
+    ni = 0 #number of interaction
     for user in users:
         preds = R_hat[user]
         preds_iid = dict(zip(preds, range(M)))
@@ -112,8 +116,20 @@ def Recall(R_hat,user_inter_test,M,k):
                 k_label.append(1)
             else:
                 k_label.append(0)
-        recall.append(sum(k_label)/len(user_inter_test[user]))
-    return sum(recall)/len(recall)
+        nh += sum(k_label)
+        ni += len(user_inter_test[user])
+        reca = sum(k_label)/len(user_inter_test[user])
+        recall.append(reca)
+        accu = sum(k_label)/k
+        accuracy.append(accu)
+        if reca+accu==0:
+            f_1.append(0)
+        else:
+            f_1.append(2*reca*accu/(reca+accu))
+    return sum(recall)/len(recall),sum(accuracy)/len(accuracy),sum(f_1)/len(f_1),nh/ni
+
+# def NDCG():
+
 
 def Get_user_item_pred(U,V,test):
     user_item_pred = defaultdict(dict)
@@ -156,11 +172,11 @@ def main():
     print('auc: {}'.format(auc))
 
     R_hat = np.dot(U,V.T)
-    recall_2 = Recall(R_hat, user_inter_test, M, 2)
-    print('recall_2: {}'.format(recall_2))
+    recall_2,accuracy_2,f1_2, hr_2 = Accuracy_Recall_F1_HR(R_hat, user_inter_test, M, 2)
+    print('recall@2: {}, accuracy@2:{}, f1@2: {}, hit ratio@2: {}'.format(recall_2,accuracy_2,f1_2,hr_2))
 
-    recall_10 = Recall(R_hat, user_inter_test, M, 10)
-    print('recall_10: {}'.format(recall_10))
+    recall_10, accuracy_10, f1_10, hr_10 = Accuracy_Recall_F1_HR(R_hat, user_inter_test, M, 10)
+    print('recall@10: {}, accuracy@10:{}, f1@10: {}, hit ratio@10: {}'.format(recall_10,accuracy_10,f1_10,hr_10))
          
 if __name__ == '__main__': 
     main()
